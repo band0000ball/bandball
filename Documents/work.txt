@@ -1,0 +1,113 @@
+================================================================================
+手動作業リスト（Unityエディタ / Inspector 設定）
+更新日: 2026-03-03
+================================================================================
+
+コード実装済みだが、Unityエディタ側での作業が残っているものをまとめます。
+
+--------------------------------------------------------------------------------
+■ シーン配置（GameObject / Component）
+--------------------------------------------------------------------------------
+
+【#29 シーン管理】
+□ MainScene の常駐 GameObject に GameSceneManager コンポーネントを AddComponent
+  - Fade Duration: 0.3f（デフォルト）
+
+【#32 ステージ管理】
+□ StageManager コンポーネントを常駐 GameObject に AddComponent
+  （DontDestroyOnLoad で自動維持）
+
+【#12 レベルアップ処理】
+□ PlayerWallet コンポーネントを常駐 GameObject に AddComponent
+  （DontDestroyOnLoad で自動維持）
+
+--------------------------------------------------------------------------------
+■ Inspector 設定（各プレハブ・オブジェクト）
+--------------------------------------------------------------------------------
+
+【#13 アビリティポイントシステム】
+□ 各キャラクタープレハブの CharacterControl > Character Category フィールドに
+  種族カテゴリ文字列を設定
+  例: 炎系キャラ → "fire" / 水系キャラ → "water"
+  ※ 未設定の場合は共通ノードのみ参照（動作はするが固有スキルが解放されない）
+
+□ Resources/AbilityTrees/ の CSV ファイルを実際のゲームデータで更新
+  - common_nodes.csv   : 共通ステータスノード
+  - category_nodes.csv : カテゴリ別スキル解放ノード（effectValue 列に実際のスキルGUIDを記入）
+  - character_nodes.csv: キャラ固有ノード（characterId は CharacterControl._characterId と一致させること）
+
+【#32 ステージ管理】
+□ ステージごとに StageData ScriptableObject を作成
+  メニュー: Assets > Create > PictureStory > Stage > StageData
+  設定項目: stageId, stageName, clearCondition, rewards[]
+
+□ 各ステージシーンに SpawnPoint を配置・設定
+  - SpawnType: Fixed / Trigger / Manual
+  - Is Boss: ボスの場合はチェック
+
+□ チェックポイントを置くオブジェクトに CheckpointTrigger を AddComponent
+  - Checkpoint Index: 0 から昇順で設定（後退防止のため重複・逆順不可）
+  - Collider を Is Trigger = true に設定
+
+□ ゴール地点オブジェクトに GoalTrigger を AddComponent
+  - Collider を Is Trigger = true に設定
+
+--------------------------------------------------------------------------------
+■ Animator 対応（アニメーションクリップ作成後に実施）
+--------------------------------------------------------------------------------
+
+【#27 コンボシステム（AttackIndex）】
+□ Attack2〜9 アニメーションクリップ作成後、Animator に各ステートを追加
+□ Attack10_Finisher クリップ作成後、Animator にステートと遷移を追加
+  ※ AttackIndex（int）パラメータは追加済み（2026-02-28 完了）
+
+【#21 パリィシステム】
+□ ParryStart アニメーションクリップを作成
+□ ParrySuccess アニメーションクリップを作成
+□ Animator にステートと遷移を追加
+
+【#22 ローリング回避】
+□ Roll アニメーションクリップを作成
+□ Animator に以下を追加:
+  - ステート: Roll
+  - トリガーパラメータ: Roll（または既存トリガーと統合）
+
+【#25 チャージ攻撃】
+□ 以下の Animator パラメータを追加:
+  - ChargeRelease（Trigger）: チャージ発射トリガー
+  - ChargeLevel（int）      : チャージ段階（0〜3）
+  - ChargeStage（int）      : 溜め中の段階表示用
+  - ChargeStart（Trigger）  : 溜め開始トリガー
+
+□ 以下のアニメーションクリップを作成:
+  - ChargeStart       : 溜め開始モーション
+  - ChargeHold        : 溜め中ループモーション（任意）
+  - ChargeRelease1    : Stage1 発射モーション（弱）
+  - ChargeRelease2    : Stage2 発射モーション（中）
+  - ChargeRelease3    : Stage3 発射モーション（強）
+
+□ Animator にステートと遷移を追加
+  ※ ChargeAttackState.cs はアニメ名 "ChargeRelease1〜3" を検出して終了判定しているため、
+    ステート名を合わせること
+
+--------------------------------------------------------------------------------
+■ CSV 記入ルール（#13 アビリティツリー）
+--------------------------------------------------------------------------------
+
+category_nodes.csv の effectValue 列（UnlockSkill タイプ）には
+対象スキルの GUID 文字列を入力してください。
+スキル GUID は Databrain エディタ または Assets/Resources/Skills/ 内の
+SkillData ScriptableObject の GUID を参照してください。
+
+CharacterControl.IsChargeWalkUnlocked() は "charge_walk" というGUIDを
+AbilityTreeManager に照会します。チャージ歩行スキルを実装する場合、
+category_nodes.csv の対象ノードの effectValue を "charge_walk" に設定してください。
+
+--------------------------------------------------------------------------------
+■ レイヤー確認
+--------------------------------------------------------------------------------
+
+□ "Player" レイヤーが LayerMask に登録されていることを確認
+  （GoalTrigger / CheckpointTrigger / SpawnPoint が LayerMask.NameToLayer("Player") を参照）
+
+================================================================================

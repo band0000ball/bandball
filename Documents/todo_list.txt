@@ -1,0 +1,659 @@
+================================================================================
+PictureStory 開発タスクリスト
+作成日: 2026-01-26
+================================================================================
+
+【推奨着手順序】
+
+#1 [done] SkillActivatorのマジックナンバー定数化
+   - SkillActivator.cs:59,78の計算式「0.9f + 0.1f * _ctl.GetControl()」を
+     GameBalance.csに定数化
+   - INVOKE_BASE_SPEED = 0.9f
+   - INVOKE_CONTROL_MULTIPLIER = 0.1f
+   - INVOKE_SKILL_DELAY_INTERVAL = 0.1f (追加)
+   - 難易度: 低 / 影響範囲: 小
+
+#2 [done] SkillActivatorの入力処理をUpdateに移動
+   - FixedUpdate内の攻撃入力処理をUpdate()に移動
+   - 物理演算のみFixedUpdateに残す
+   - 難易度: 低 / 影響範囲: 中
+
+#3 [done] DamageManagerの静的リスト管理改善
+   - ClearAll()メソッドの追加
+   - RemoveCharacter()メソッドの追加
+   - シーン遷移時にCharacters, _damage, Durationリストをクリア
+   - 難易度: 低 / 影響範囲: 中
+
+#4 [done] BuffSystemをCharacterControlから分離
+   - Assets/Scripts/Buff/BuffType.cs
+   - Assets/Scripts/Buff/Buff.cs
+   - Assets/Scripts/Buff/BuffManager.cs (HavingBuffsの改名)
+   - Assets/Scripts/Buff/IBuffManager.cs (インターフェース)
+   - 難易度: 中 / 影響範囲: 大
+
+#5 [done] 状態異常クラスの実装（IStatusEffect）
+   - StunEffect.cs（昏睡）: 行動不能、ガード不可
+   - DepressionEffect.cs（憂鬱）: スキル/アイテム使用遅延
+   - BleedingEffect.cs（出血）: 継続ダメージ
+   - AnxietyEffect.cs（不安）: スタミナ強制ゼロ
+   - 実装場所: Assets/Scripts/StatusEffect/Effects/
+   - 難易度: 中 / 影響範囲: 中
+   - ※2026-01-26 確認: 4種全て実装済み（IStatusEffect, StatusEffectBase, StatusEffectManager含む）
+
+#6 [done] StatusEffectManagerとCharacterControlの統合 [depends on #5]
+   - CharacterControlにStatusEffectManagerの参照を追加
+   - 状態異常の適用/解除をCharacterControlから呼び出し可能に
+   - ICharacterStatsのCanMove/CanAttack/CanGuardフラグの連携
+   - FixedUpdateで状態フラグを考慮した処理に更新
+   - 難易度: 中 / 影響範囲: 大
+
+#7 [done] ガードシステム（複数スロット）の実装
+   - guardNum分のスロットを独立管理
+   - 各スロットのクールダウン独立管理
+   - ダメージは先頭のアクティブガードから消費
+   - CharacterCombat.csに実装
+   - 難易度: 中 / 影響範囲: 中
+   - ※2026-01-26 確認: CharacterCombat.csに _guardCooldowns[], _guardHealths で実装済み
+
+#8 [done] スキルクールダウンUIの実装（円形ゲージ）
+   - 円形ゲージ（Radial Fill）で時計回りに減少
+   - 12時位置から開始
+   - 完了時に軽いパルスエフェクト
+   - クールダウン中はグレーオーバーレイ
+   - BottomItemIconButton.csまたは新規UIコンポーネントで実装
+   - 難易度: 中 / 影響範囲: 小
+   - ※2026-01-26 確認: 実装済み
+
+================================================================================
+【Phase 2: 未実装機能】 追加日: 2026-01-27
+================================================================================
+
+#9 [done] ノックバックシステムの実装
+   - SkillData/SkillComponentにノックバック値(knockbackPower)を追加
+   - ノックバック対象設定(KnockbackTarget: Enemy/Player/Both)をスキル依存で設定
+   - DamageManager.Damage()でノックバック適用処理を追加
+   - CharacterMovementにApplyKnockback()メソッド追加
+   - ノックバック中の入力制限処理
+   - 実装ファイル: AttackSkillData.cs, KnockbackTarget.cs(新規), SkillComponent.cs,
+     DamageManager.cs, CharacterMovement.cs, CharacterControl.cs, CharacterCombat.cs, GameBalance.cs
+   - 難易度: 中 / 影響範囲: 中
+
+#10 [done] 状態異常の属性トリガー実装
+   - 毒属性スキル命中時 → 昏睡(Stun)付与
+   - 魂属性スキル命中時 → 憂鬱(Depression)付与
+   - 氷属性スキル命中時 → 出血(Bleeding)付与
+   - 風属性スキル命中時 → 不安(Anxiety)付与
+   - ※状態異常は属性ID 5-9（Lv100以上で登場）のみ
+   - DamageManager.Damage()に属性判定→状態異常付与ロジック追加
+   - 被攻撃キャラクターの数値と攻撃キャラクターの数値で状態異常の発生時間が決定
+   - 発生時間計算式：(攻撃キャラクター(属性値×0.5+baseAttributePower) - 被攻撃キャラクター(属性値×0.5+baseResistancePower)) × 定数
+   - 実装ファイル: DamageManager.cs
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #5, #6
+   - ※仕様不一致: game_system_design.md 4.5 では「属性ではなくアイテムスキルによって付与」。
+     現実装は属性トリガー方式のため → #30 で実装修正予定
+
+#11 [done] 憂鬱・不安効果の処理完成
+   - DepressionEffect: スキル発動遅延倍率(DEPRESSION_SKILL_DELAY_MULTIPLIER=1.5)適用
+   - AnxietyEffect: スタミナ回復停止処理の確認・完成
+   - CharacterControlでの効果反映確認
+   - 実装ファイル: DepressionEffect.cs, AnxietyEffect.cs, CharacterControl.cs
+   - 難易度: 小 / 影響範囲: 小
+   - ※2026-02-18 完了: StatusEffectManager, CharacterControl, SkillActivator更新
+
+#12 [done] レベルアップ処理の実装
+   - 通貨消費制: LevelExp.needForNextLevel をゴールドコストとして使用
+   - AP獲得量 = レベルアップ前のレベル値（例: Lv5→6で5AP獲得）
+   - ステータス上昇なし（AP振り分けで決定: #13）
+   - レベルキャップ: LevelExpテーブルに現在レベルのエントリがなければ上限
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Manager/PlayerWallet.cs（DontDestroyOnLoadゴールド管理シングルトン）
+     - 新規 Assets/Scripts/Level/LevelUpManager.cs（静的ユーティリティ: TryLevelUp/GetLevelUpCost/IsAtMaxLevel）
+     - 修正 Assets/Scripts/Character/CharacterControl.cs（_currentLevel/_abilityPoints, ApplyLevelUp/GetCurrentLevel/GetAbilityPoints/AddAbilityPoints追加）
+   - 完了日: 2026-03-02
+
+#13 [done] アビリティポイントシステムの実装
+   - 3層ハイブリッド構造: 共通ノード / カテゴリ（種族）ノード / キャラ固有ノード
+   - データ管理: CSV 3ファイル（Resources/AbilityTrees/）でスプレッドシート編集可能
+   - ステータス効果: BuffManager経由で永続Buff付与
+   - スキル解放効果: _unlockedSkills HashSetで管理（IsAbilitySkillUnlocked()で照会）
+   - リセット: 消費AP × ABILITY_RESET_GOLD_RATE(=10) ゴールドでAP全返還
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Level/AbilityNodeDef.cs（ノード定義データクラス）
+     - 新規 Assets/Scripts/Level/AbilityTreeLoader.cs（CSV静的ローダー）
+     - 新規 Assets/Scripts/Level/AbilityTreeManager.cs（習得状態・解放ロジック）
+     - 新規 Assets/Resources/AbilityTrees/common_nodes.csv
+     - 新規 Assets/Resources/AbilityTrees/category_nodes.csv
+     - 新規 Assets/Resources/AbilityTrees/character_nodes.csv
+     - 修正 Assets/Scripts/Character/CharacterControl.cs（_characterCategory, TrySpendAbilityPoints, GetAbilityTreeManager等追加）
+     - 修正 Assets/Scripts/Commons/GameBalance.cs（ABILITY_RESET_GOLD_RATE追加）
+   - 完了日: 2026-03-03
+
+#14 [pending] アビリティツリーの実装
+   - アビリティノード定義(AbilityTreeData: ScriptableObject)
+   - 前提条件システム(prerequisiteNodeIds)
+   - パッシブ/アクティブアビリティの区別
+   - アビリティツリーUI
+   - 実装ファイル: 新規AbilityTreeData.cs, AbilityTreeManager.cs, UI関連
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #13
+
+#15 [pending] シナジーシステムの実装
+   - 属性連携: 連続ヒット時に発動（例: 油アイテムスキル→火アイテムスキルで追加ダメージ）
+   - 装備セット効果: 特定装備の組み合わせでボーナス
+   - シナジールール定義(SynergyRule: ScriptableObject)
+   - DamageManagerでのシナジーボーナス適用
+   - 実装ファイル: 新規SynergyRule.cs, SynergyManager.cs, DamageManager.cs
+   - 難易度: 大 / 影響範囲: 大
+
+#16 [pending] 難易度システムの実装
+   - 3段階難易度: ノーマル(Normal) / ハード(Hard) / ウルトラ(Ultra)
+   - 敵レベル補正: +0 / +10 / +20
+   - ドロップ報酬倍率（通貨/アイテム/レアアイテム）: 1.0x / 1.5x / 2.5x
+   - 死亡ペナルティ:
+     - ノーマル: 所持金10%ロスト、装備ペナルティなし
+     - ハード: 所持金50%ロスト、装備一部ドロップ（10分以内にステージ内回収可）
+     - ウルトラ: 所持金100%ロスト（ステージ内回収可）、装備全ドロップ、
+               キャラクタードロップ（30分以内回収可 / 失敗で永久ロスト）
+   - ドロップアイテム回収システム（マップマーカー・残り時間表示）→ #31
+   - 難易度選択UI（ステージ選択時のみ変更可）
+   - DifficultySettings データ構造（StageDifficulty enum: Normal/Hard/Ultra）
+   - 実装ファイル: 新規DifficultySettings.cs, DifficultyManager.cs, UI関連
+   - 難易度: 大 / 影響範囲: 大
+
+================================================================================
+【Phase 3: HSM（階層型ステートマシン）導入】 追加日: 2026-02-12
+================================================================================
+
+■ 背景・目的
+  現在の状態管理はフラグベース + 条件分岐で実装されているが、以下の問題がある：
+  - 状態の分散（CharacterControl, CharacterMovement, CharacterCombat）
+  - 暗黙的な状態遷移（複合フラグ条件の増加）
+  - 将来機能（パリィ、ローリング回避、状態異常）の追加困難
+
+  HSMを導入し、状態遷移を明示的に管理することでこれらを解決する。
+
+■ アーキテクチャ方針
+  - HSMでロジックを管理、Animatorはパラメータ設定のみ担当
+  - 既存のCharacterMovement, CharacterCombatは物理計算・ダメージ計算に特化
+  - ICharacterStatsのCanMove/CanAttack/CanGuardは状態から自動算出
+  - BuffManager, StatusEffectManagerはそのまま活用
+
+■ 状態階層設計
+  CharacterStateMachine
+  ├── ActionState（親状態）
+  │   ├── IdleState
+  │   ├── WalkState
+  │   ├── JumpState
+  │   ├── AttackState
+  │   └── GuardState
+  │       ├── HoldingState（ガード保持）
+  │       └── ParryingState（パリィ窓）
+  └── InterruptState（割り込み状態）
+      ├── DamagedState
+      ├── DeadState
+      └── RollingState
+
+--------------------------------------------------------------------------------
+
+#17 [done] HSM基盤構築（Phase 3-1）
+   - ICharacterState インターフェース定義
+     - Name, CanMove, CanAttack, CanGuard, CanTakeDamage, IsInvincible
+     - Enter(), Update(), FixedUpdate(), Exit()
+     - CanBeInterruptedBy(ICharacterState)
+   - CharacterStateMachine クラス作成
+     - 状態インスタンスのキャッシュ（Dictionary<Type, ICharacterState>）
+     - ChangeState<T>() メソッド
+     - CurrentState プロパティ
+   - CharacterStateBase 基底クラス追加（実装を簡潔にするため）
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Character/StateMachine/ICharacterState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/CharacterStateMachine.cs
+     - 新規 Assets/Scripts/Character/StateMachine/CharacterStateBase.cs
+   - 難易度: 中 / 影響範囲: 小（既存コードに影響なし）
+   - ※2026-02-18 完了
+
+#18 [done] 基本状態クラスの実装（Phase 3-1）
+   - IdleState: 待機状態、全アクション可能
+   - WalkState: 移動状態、攻撃・ガード・ジャンプ可能
+   - JumpState: ジャンプ状態、空中攻撃可能
+   - AttackState: 攻撃状態、移動不可、ダメージ割り込み可
+   - GuardState: ガード状態、移動不可
+   - DamagedState: 被ダメージ状態、全アクション不可
+   - DeadState: 死亡状態、終端状態
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Character/StateMachine/States/IdleState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/States/WalkState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/States/JumpState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/States/AttackState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/States/GuardState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/States/DamagedState.cs
+     - 新規 Assets/Scripts/Character/StateMachine/States/DeadState.cs
+   - 難易度: 中 / 影響範囲: 小
+   - depends on: #17
+
+#19 [done] CharacterControlへのStateMachine統合（Phase 3-1）
+   - CharacterControlにCharacterStateMachineの参照を追加
+   - Awake()でStateMachine初期化、IdleState開始
+   - Update()/FixedUpdate()でStateMachine更新
+   - 既存ロジックと並行動作（Phase 3-1では置換しない）
+   - 実装ファイル: CharacterControl.cs
+   - 難易度: 小 / 影響範囲: 小
+   - depends on: #17, #18
+
+#20 [done] 既存ロジックのStateMachine移行（Phase 3-2）
+   - CharacterControl.FixedUpdate()の条件分岐をStateMachineに移行
+   - フラグ (_isJumping, _isCrouching等) を状態から自動算出に変更
+   - ICharacterStats.CanMove/CanAttack/CanGuardをStateMachine経由に変更
+   - CharacterMovement/CharacterCombatから状態判定ロジックを削除
+   - 実装ファイル: CharacterControl.cs, CharacterMovement.cs, CharacterCombat.cs
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #19
+
+#21 [done] パリィシステムの実装（Phase 3-3）
+   - GuardState.OnEnterでパリィ窓開始（PARRY_WINDOW=0.2s）
+   - 窓内に攻撃を受けるとGuardInflicted()でパリィ成功→ダメージ完全遮断
+   - パリィ成功時: スタミナ回復（PARRY_STAMINA_RECOVERY=20）+ 反撃チャンス（PARRY_COUNTER_WINDOW=1.5s）
+   - 反撃チャンス中: 攻撃ボタンでAttackState遷移（ガードを離さなくてもOK）
+   - 実装ファイル:
+     - Assets/Scripts/Character/StateMachine/States/GuardState.cs（OnEnter追加・OnUpdate拡張）
+     - GameBalance.cs（PARRY_WINDOW/STAMINA_RECOVERY/COUNTER_WINDOW追加）
+     - CharacterCombat.cs（_parryTimer/_isParried, StartParryWindow/DecreaseParryTimer/ConsumeParry, GuardInflictedにパリィ判定追加）
+     - CharacterControl.cs（GetAttackInput/RecoverStaminaOnParry追加）
+   - 残作業: ParryStart・ParrySuccessアニメーション追加（#27残作業と同時）
+   - 完了日: 2026-03-01
+
+#22 [done] ローリング回避システムの実装（Phase 3-3）
+   - RollingState: 無敵時間（0.25s）+ クールダウン（1.2s）
+   - 入力: X軸ダブルタップ（0.3s以内に同方向2回）
+   - CanMove=false でOnFixedUpdateから MaintainRollVelocity() を毎フレーム呼び出し
+   - ROLLING_DURATION/INVINCIBLE_TIME/COOLDOWN/SPEED_MULTIPLIER/DOUBLE_TAP_WINDOW 定数追加
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Character/StateMachine/States/RollingState.cs
+     - GameBalance.cs（ローリング定数5種追加）
+     - Commons/InputBase.cs（roll, rollDirection フィールド追加）
+     - Player/PlayerInput.cs（DetectRollInput() ダブルタップ検知追加）
+     - CharacterMovement.cs（MaintainRollVelocity() 追加）
+     - CharacterControl.cs（_roll/_rollingDirection/_rollingCooldownTimer, GetRoll/GetRollingDirection/StartRollingCooldown追加）
+     - IdleState.cs, WalkState.cs（RollingState遷移チェック追加）
+   - 残作業: Roll アニメーションクリップ + Animator トリガー追加（#27残作業と同時）
+   - 完了日: 2026-03-01
+
+#23 [pending] 敵AI StateMachineの実装（Phase 3-3）
+   - 現在の距離ベース条件分岐をStateMachineに置換
+   - 状態: Idle, Patrol, Chase, Attack, Cooldown, Flee, Recovery, Dead（8状態）
+   - AIタイプ6種: 近接型/遠隔型/魔法型/防御型/召喚型/ボス型（AIType enum）
+   - 各タイプのパラメータ: detectionRange, attackRange, fleeThreshold, reengageThreshold等
+   - 行動スコアリングシステム（状況評価 → 候補リスト → 優先度スコア計算 → 最高スコア行動実行）
+   - プレイヤー行動予測（攻撃モーション/移動方向予測、高難度向け行動パターン学習）
+   - ボスAI: フェーズ遷移（Phase1: HP100-70% / Phase2: HP70-40% / Phase3: HP40-10% / Enrage: HP10%以下）
+     - フェーズ遷移時2-3秒無敵、Enrage: 攻撃力+50%・速度+30%
+     - EnrageTimerあり（デフォルト5分経過でEnrage強制移行）
+   - 敵グループ行動（同時攻撃/挟み撃ち/砲撃支援/役割分担/撤退判断）
+   - EnemyAIData, AttackPattern, BossPhase データ構造
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Monster/StateMachine/EnemyStateMachine.cs
+     - 新規 Assets/Scripts/Monster/StateMachine/States/*.cs（8状態）
+     - 新規 Assets/Scripts/Monster/EnemyAIData.cs
+     - 新規 Assets/Scripts/Monster/ActionSelector.cs（スコアリング）
+     - Monsters.cs（StateMachine統合）
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #20
+
+================================================================================
+【Phase 4: アクションシステム拡張】 追加日: 2026-02-18
+================================================================================
+
+#24 [done] 10連コンボシステムの実装
+   - 連続攻撃入力でコンボ継続（最大10連）
+   - コンボ段階ごとに異なるアニメーション/ダメージ倍率
+   - コンボカウンター: 現在のコンボ数を管理
+   - コンボタイマー: 一定時間入力がないとコンボ途切れ（リセット）
+   - コンボフィニッシャー: 10連目で特殊な強力攻撃
+   - コンボUI: 現在のコンボ数を画面に表示
+   - 実装ファイル:
+     - Assets/Scripts/Character/StateMachine/States/AttackState.cs（サブ状態管理）
+     - CharacterCombat.cs（コンボカウンター）
+     - 新規 Assets/Scripts/UI/ComboCounterUI.cs
+     - GameBalance.cs（COMBO_WINDOW_TIME, COMBO_DAMAGE_MULTIPLIERS[10]）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #20 (HSM移行)
+
+#25 [done] チャージ攻撃システムの実装
+   - 攻撃ボタン長押し検出
+   - チャージ段階（1〜3段階）
+   - チャージ完了時のエフェクト/SE
+   - 段階に応じたダメージ倍率
+   - チャージ中の移動制限/キャンセル可否
+   - 実装ファイル:
+     - Assets/Scripts/Character/StateMachine/States/AttackState.cs（チャージサブ状態）
+     - SkillActivator.cs
+     - GameBalance.cs（CHARGE_TIME_STAGE1/2/3, CHARGE_DAMAGE_MULTIPLIERS）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #20 (HSM移行)
+
+#26 [pending] 空中アクション拡張
+   - 敵踏みジャンプリセット: 敵との上方接触判定でジャンプ回数リセット
+   - 空中ダッシュ: 空中で方向入力+ダッシュボタンで発動、1回/ジャンプ
+   - 壁キック: _isTouchingWall時にジャンプ入力で壁蹴りジャンプ
+   - 各アクションはAP/アイテムで解放（初期状態では使用不可）
+   - 解放状態の管理（AbilityManager連携）
+   - 実装ファイル:
+     - Assets/Scripts/Character/StateMachine/States/JumpState.cs
+     - CharacterMovement.cs
+     - GameBalance.cs（AIR_DASH_SPEED, WALL_KICK_FORCE）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #14 (アビリティツリー), #20 (HSM移行)
+
+================================================================================
+【Phase 5: 後付け対応・インフラ整備】 追加日: 2026-02-22
+================================================================================
+
+#27 [pending] Animatorコントローラーのコンボシステム対応（Editor作業）
+   - コンボシステム（#24）向けのAnimatorパラメーター・ステート追加
+   - [済] Integer型パラメーター "AttackIndex"（1〜10）を追加 ← 2026-02-28完了
+   - Attack2〜9 アニメーションクリップ作成後に各ステートを追加
+   - Attack10_Finisher クリップ作成後にステートとコンボ遷移を設定
+   - AttackIndex値に応じてサブステートマシンで分岐させる構成
+   - 実装ファイル: Animatorコントローラー（Unityエディタ作業）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #24 (コード実装済み、アニメーション作成待ち)
+
+#28 [done] ComboCounterUI のシーン配置（Editor作業）
+   - ComboCounterUI コンポーネントをシーン内UIに配置
+   - TextMeshProUGUI(_comboText) の参照設定
+   - コンボ表示用パネル GameObject(_comboPanel) の参照設定
+   - CharacterControl(_character) の参照設定
+   - 実装ファイル: シーン (.unity) ファイル（Unityエディタ作業）
+   - 難易度: 低 / 影響範囲: 小
+   - depends on: #24 (コード実装済み)
+
+#29 [done] シーン管理システムの実装
+   - シーン遷移時に DamageManager.ClearAll() を呼び出す
+   - 静的リスト（Characters, Duration, _damage）のリーク防止
+   - ロード画面・シーンフェード処理の基盤も含む
+   - 実装ファイル: 新規 Assets/Scripts/Manager/SceneManager.cs または類似
+   - 難易度: 中 / 影響範囲: 大
+
+================================================================================
+【Phase 6: 大規模システム拡張】 追加日: 2026-02-22
+================================================================================
+
+#30 [done] 状態異常付与方式の実装修正（仕様書準拠）
+   - #10で実装した属性トリガー方式を廃止し、アイテムスキル付与方式に変更
+   - 仕様: 特定のアイテムスキルが命中した時のみ状態異常を付与（Lv100以降のステージで登場）
+   - AttackSkillData.csに状態異常フィールドを追加:
+     - StatusEffectType（昏睡/憂鬱/出血/不安 or None）
+     - float statusEffectDuration（持続時間）
+     - float statusEffectChance（付与確率、0〜1）
+   - DamageManager.csの修正:
+     - ApplyStatusEffect()メソッドを削除
+     - CalcStatusEffectDuration()メソッドを削除
+     - Damage()内にスキルデータ参照方式の付与ロジックを追加
+       （skill.statusEffectType != None かつ 確率判定 → 付与）
+   - GameBalance.csのSTATUS_EFFECT_DURATION_MULTIPLIERはそのまま使用可
+   - 実装ファイル: AttackSkillData.cs（フィールド追加）, DamageManager.cs（ロジック修正）
+   - 難易度: 中 / 影響範囲: 中
+
+#31 [pending] 死亡ペナルティ・アイテム保護システムの実装
+   - 死亡時のアイテム/装備ドロップ処理（ハード/ウルトラ難易度向け）
+   - アイテム保護システム: 出撃前に通貨消費で保護（コモン10〜ハイパーレア以上要検討）
+   - ドロップアイテム回収タイマー（通貨10分/装備10分/キャラクター30分）
+   - マップ上の回収マーカー表示（残り時間付き）
+   - キャラクタードロップ・パーティ復帰処理（ウルトラ難易度）
+   - 即リスポーンアイテム（課金）、パートナー救援（HP回復）
+   - 実装ファイル: 新規DeathPenaltyManager.cs, ItemDropMarker.cs, UI関連
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #16
+
+#32 [done] ステージ管理システムの実装
+   - ClearCondition: KillAllEnemies / ReachGoal / DefeatBoss / Survival（enum）
+   - リザルト: UIオーバーレイ方式（TODO: UI実装は別タスク）
+   - SpawnPoint: Fixed（Start即スポーン）/ Trigger（コライダー入場）/ Manual
+   - チェックポイント: isTrigger=true コライダー + インデックス管理（後退防止）
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Stage/StageData.cs（ScriptableObject + ClearCondition/StageReward enum）
+     - 新規 Assets/Scripts/Stage/EncounterData.cs（enemyPrefabs[], spawnOffsets[]）
+     - 新規 Assets/Scripts/Stage/StageManager.cs（DontDestroyOnLoad シングルトン）
+     - 新規 Assets/Scripts/Stage/SpawnPoint.cs（Fixed/Trigger/Manual, ボスフラグ, Gizmo表示）
+     - 新規 Assets/Scripts/Stage/CheckpointTrigger.cs（チェックポイントトリガー, Gizmo表示）
+     - 新規 Assets/Scripts/Stage/GoalTrigger.cs（ゴール地点, Gizmo表示）
+     - 修正 Assets/Scripts/Manager/GameSceneManager.cs（ClearAllManagersにStageManager.ClearStage追加）
+   - 残作業:
+     - #38 統合（RegisterCheckpoint/TriggerStageClear内のTODO箇所）
+     - リザルトUIオーバーレイ（StageManager.OnStageClearイベントを購読）
+     - BGM再生（StartStage内のTODO箇所）
+   - 完了日: 2026-03-02
+
+#33 [pending] クエストシステムの実装
+   - QuestData（questId, questType, objectives[], prerequisites[], rewards, isRepeatable）
+   - 8種の目標タイプ（討伐/収集/到達/護衛/タイムアタック/会話/調査/複合）
+   - 受注制限: 同時3〜5個、メイン1個・サブ最大4個
+   - 選択式報酬システム（クエスト完了時に3択から1つ選択）
+   - QuestManager（受注/放棄/進捗更新/完了処理）
+   - QuestUI（QuestLog/QuestTracker/QuestDetail）
+   - 実装ファイル: 新規QuestData.cs, QuestManager.cs, QuestProgress.cs, UI関連
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #32
+
+#34a [done] キャラクターデータモデルの実装
+   ※ 旧 #34 を機能単位に分解したもの。詳細仕様: game_system_design_advanced.md セクション1
+   - OwnedCharacterData クラス:
+     characterId, uniqueId, currentLevel, originalLevel,
+     rarity（アイテムと同一体系）, isAlchemizable（錬金術可否フラグ）,
+     baseStatus, currentStatus, equipment（CharacterSlotItemData）,
+     size（Small=0.5枠/Normal=1枠）, behavior（Aggressive/Defensive/Support/Passive）,
+     isActive, isDeadInStage
+   - OwnedCharacterCollection クラス（シングルトン）:
+     List<OwnedCharacterData>（上限50体）, operatingCharacter, partners,
+     pendingCharacter（ステージ中超過取得の一時保持）
+   - UI なし・データ構造とアクセサのみ
+   - 実装ファイル: 新規 OwnedCharacterData.cs, OwnedCharacterCollection.cs
+   - 難易度: 小 / 影響範囲: 小
+   - depends on: #12（レベルアップ処理）
+
+#34b [pending] プレイヤースポーン・操作切り替えの実装
+   - PlayerSpawnPoint: ステージ開始時に操作キャラ＋パートナーをスポーンする地点コンポーネント
+   - PlayerCharacterController: OwnedCharacterCollection を参照して CharacterControl を初期化
+     * SwitchOperator(target): 元のキャラをAI操作に戻し、target をプレイヤー操作に
+     * 操作キャラ死亡時: isDeadInStage=true → リスト順で次の生存キャラに自動切り替え
+     * 全員死亡 → ゲームオーバー処理
+   - StageManager.StartStage() からの呼び出し連携
+   - 実装ファイル: 新規 PlayerSpawnPoint.cs, PlayerCharacterController.cs
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #34a
+
+#34c [pending] 出撃画面 UI の実装
+   - 保有コレクション一覧から操作キャラ1体を選択
+   - パートナースロット最大2.0枠（Small=0.5枠・Normal=1.0枠、最大4体の小型も可）
+   - 各キャラクターへの装備割り当て
+   - 実装ファイル: 新規 UI/DeployScreen.cs, UI/PartyStatusUI.cs
+   - 難易度: 大 / 影響範囲: 中
+   - depends on: #34a, #34b, #35（メニューUI）
+
+#34d [pending] キャラクター入手処理の実装
+   - CharacterDropHandler: ボス撃破時のオーバーキル補正ドロップ判定
+     （HP0ちょうど→50%, HP×0.5ダメージ→80%, HP×2.0ダメージ→10%）
+   - 同一キャラ入手時: 基礎ステータスアップ(+2〜5%) or 追加登録を選択
+   - コレクション満員時: pendingCharacter に一時保持（ゲームオーバーで消滅）
+     → 拠点帰還時に削除操作を強制
+   - 実装ファイル: 新規 CharacterDropHandler.cs
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #34a
+
+#34e [pending] コレクション管理（おわかれ・スクラップ）の実装
+   - おわかれ: キャラ種別固有のアイテムプール（CharacterMasterData.farewellItemPool）からランダムドロップ
+   - スクラップ: 返還通貨 = レベルアップ総コスト × 0.5
+   - 実装ファイル: 新規 CollectionManager.cs（おわかれ・スクラップのみ）
+   - 難易度: 小 / 影響範囲: 小
+   - depends on: #34a, #34d
+
+#34f [pending] 錬金術システムの実装
+   - AlchemySystem:
+     * 素材条件: 同一 characterId かつ 素材の rarity ≥ ベースの rarity
+     * ベースの isAlchemizable == true であること
+     * 必要素材数: レアリティによって変動（Common は1体〜、詳細はバランス調整）
+     * 結果: ベースの rarity +1、level キャップ上昇
+     * 素材の処理: 装備を全返却 + レベルコスト×0.5 を通貨返還してから削除
+     * ベースの level/AP/uniqueId はそのまま保持
+   - 実装ファイル: 新規 AlchemySystem.cs、CollectionManager.cs に統合
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #34a, #34e
+
+#34g [pending] 初期キャラクター選択（チュートリアル）の実装
+   - 5〜10体の候補（属性ごとに1〜2体）をランダムで提示
+   - 選択した1体が最初の操作キャラクターとして登録される
+   - 選ばなかったキャラはゲーム内で通常入手可能
+   - 実装ファイル: 新規 UI/TutorialCharacterSelectUI.cs
+   - 難易度: 小 / 影響範囲: 小
+   - depends on: #34a, #34c
+
+#35 [pending] メニューUIの実装
+   - タブ構成: ステータス / インベントリ / アビリティ / マップ / 設定
+   - ステータスタブ: キャラ情報、ステータス一覧、属性グラフ
+   - インベントリタブ: アイテムグリッド、アイテム詳細・操作
+   - アビリティタブ: 装備スキル表示、アビリティツリー
+   - 設定タブ: サウンド/操作/グラフィック設定
+   - オンライン中もリアルタイム動作（ポーズなし）
+   - 実装ファイル: 新規UI/MenuCanvas.cs, UI/StatusTab.cs, UI/InventoryTab.cs 等
+   - 難易度: 大 / 影響範囲: 中
+   - depends on: #14
+
+#36 [pending] 環境インタラクションシステムの実装
+   - 基本5種: 水場×雷→電気拡散 / 油溜まり×火→引火 / 草×火→燃焼 /
+              氷面×火→溶解 / 水場×氷→凍結
+   - 連鎖反応（油→火→水→蒸気等）
+   - EnvironmentTile/ElementalZoneコンポーネント
+   - 将来拡張: 地形変化（爆発→崩壊）、液体シミュレーション
+   - 実装ファイル: 新規EnvironmentInteraction.cs, ElementalZone.cs
+   - 難易度: 大 / 影響範囲: 中
+   - depends on: #15
+
+#37 [pending] PlayFab認証システムの実装
+   ※ 本作はオンラインゲーム基本構造のため、旧「ローカルセーブ/ロード」から変更
+   - PlayFab Unity SDK導入・初期化（TitleID設定、PlayFabSettings）
+   - ゲスト認証: LoginWithCustomID（端末IDベース）で即プレイ可能
+   - フル認証: PlayFab対応方式を全てサポート
+     （LoginWithEmailAddress / LoginWithGoogleAccount / LoginWithApple /
+       LoginWithFacebook / LoginWithSteam / LoginWithXboxOne 等）
+   - ゲスト→フルアカウントアップグレード: LinkCustomID→LinkEmailAddress等
+   - 認証状態管理（AuthState enum: Guest / Authenticated / Offline）
+     - Guest: ローカルプレイ可、オンライン対戦・課金・データ同期不可
+     - Authenticated: 全機能解放
+     - Offline: 接続不可、オフラインキャッシュで動作
+   - 認証UI: ログイン画面、新規登録、ゲストとして続ける ボタン
+   - 実装ファイル: 新規 AuthManager.cs, AuthStateManager.cs, UI/LoginCanvas.cs
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: (なし、基盤として先行実装)
+
+#38 [pending] PlayFabオンラインデータ永続化・オフライン同期システムの実装
+   ※ #37のローカルセーブ/ロードに相当する機能をPlayFabで実装
+   - オンラインデータモデル（PlayFab UpdateUserData / GetUserData）:
+     - キャラクターデータ: Lv, ステータス, スキル, 装備
+     - インベントリ: アイテム（PlayFab Catalogと連携）
+     - ステージ進行: クリア済みステージ, チェックポイント
+   - セーブタイミング: チェックポイント通過 / 拠点帰還 / ステージクリア（オート）
+   - オフラインキャッシュ:
+     - ES3（Easy Save 3、シーン内に配置済み）でローカル保存
+     - ScriptableObjectJson.cs / CharacterSlotItemData.Save() との統合
+   - 同期キュー（OfflineSyncQueue）:
+     - 同期失敗時はキューに積み、次回接続時（認証成功後）に自動再送
+     - 最大リトライ: 接続リストア後3回以内に送信、それ以降はセッション毎に再試行
+   - 競合解決ポリシー: サーバーデータを基本優先
+     - オフライン進行がサーバーより「より進んでいる」場合はオフライン優先
+     （例: ステージクリア数、レベルの高い方を採用）
+   - 設定データ（音量/操作/グラフィック）: ローカルのみ（ES3）、同期対象外
+   - 実装ファイル: 新規 PlayFabDataManager.cs, OfflineSyncQueue.cs,
+                  LocalSettingsManager.cs, PlayFabInventoryBridge.cs
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #37, #32
+
+================================================================================
+【エディタセットアップ作業（UnityMCP）】
+================================================================================
+
+#39 [done] MainScene コンポーネント配置・Playerレイヤー確認（UnityMCP）
+   - MainScene 常駐 GameObject に以下を AddComponent:
+     - GameSceneManager（Fade Duration: 0.3f）
+     - StageManager（DontDestroyOnLoad）
+     - PlayerWallet（DontDestroyOnLoad）
+   - "Player" レイヤーが LayerMask に登録されていることを確認・追加
+   - 実装方法: manage_components / manage_editor
+   - 難易度: 低 / 影響範囲: 中
+   - depends on: #29, #32, #12（コード実装済み）
+
+#40 [done] テストステージ初期セットアップ（UnityMCP）
+   - StageData ScriptableObject を作成（テスト用 stageId: stage_001）
+   - ステージシーンに SpawnPoint / CheckpointTrigger / GoalTrigger を配置・設定
+   - 実装方法: manage_scriptable_object / manage_gameobject / manage_components
+   - 難易度: 低 / 影響範囲: 中
+   - depends on: #32（コード実装済み）
+
+#41 [done] キャラクタープレハブのカテゴリ設定（UnityMCP）
+   - 各キャラクタープレハブの CharacterControl._characterCategory に種族文字列を設定
+   - 実装方法: manage_prefabs / manage_components
+   - 難易度: 低 / 影響範囲: 小
+   - depends on: #13（コード実装済み）
+
+#42 [done] Animator パラメータ追加（UnityMCP）
+   - 以下のパラメータを Animator Controller に追加:
+     - ChargeRelease（Trigger）、ChargeLevel（int）、ChargeStage（int）、ChargeStart（Trigger）
+     - Roll（Trigger）
+   - 対象: Assets/Monsters/BaseMonsterAnimator.controller
+   - アニメーションクリップ作成後: ステート・遷移を追加（残作業）
+   - 完了日: 2026-03-04
+
+================================================================================
+進捗メモ
+================================================================================
+
+[日付] [タスク#] [状態] [メモ]
+例: 2026-01-26 #1 完了 GameBalance.csに定数追加
+
+2026-01-26 #5 完了 StatusEffect/Effects/に4種の状態異常クラス実装済みを確認
+2026-01-26 #7 完了 CharacterCombat.csに複数スロットガード実装済みを確認
+2026-01-26 #8 完了 スキルクールダウンUI実装済みを確認
+2026-01-26 #1 完了 GameBalance.csにINVOKE_BASE_SPEED等を追加、SkillActivator.csを更新
+2026-01-26 #2 完了 SkillActivator.csのFixedUpdateをUpdateに変更
+2026-01-26 #3 完了 DamageManager.csにClearAll()とRemoveCharacter()を追加
+2026-01-26 #4 完了 Assets/Scripts/Buff/に分離（BuffType.cs, Buff.cs, BuffManager.cs, IBuffManager.cs）
+2026-01-26 #6 完了 CharacterControlにICharacterStats実装、StatusEffectManager統合
+2026-01-30 #9 完了 ノックバックシステム実装（8ファイル変更: AttackSkillData, KnockbackTarget新規, SkillComponent, DamageManager, CharacterMovement, CharacterControl, CharacterCombat, GameBalance）
+2026-02-18 #11 完了 憂鬱・不安効果の処理完成（3ファイル変更: StatusEffectManager.cs, CharacterControl.cs, SkillActivator.cs）
+2026-02-18 #17 完了 HSM基盤構築（3ファイル新規作成: ICharacterState.cs, CharacterStateMachine.cs, CharacterStateBase.cs）
+2026-02-22 #18 完了 基本状態クラス実装（7ファイル新規作成: IdleState, WalkState, JumpState, AttackState, GuardState, DamagedState, DeadState）
+2026-02-22 #19 完了 CharacterControlへのStateMachine統合（CharacterControl.csに InitializeStateMachine追加）
+2026-02-22 #20 完了 既存ロジックのStateMachine移行（CharacterControl.cs, CharacterMovement.cs変更）
+2026-02-22 #10 完了 状態異常の属性トリガー実装（DamageManager.cs: ApplyStatusEffect, CalcStatusEffectDuration追加; GameBalance.cs: STATUS_EFFECT_DURATION_MULTIPLIER追加）
+2026-02-22 #24 完了 10連コンボシステム実装（CharacterCombat.cs: コンボカウンター/タイマー/ウィンドウ追加; AttackState.cs: 終了条件更新; CharacterControl.cs: UpdateComboTimer呼び出し/GetComboCount等追加; DamageManager.cs: コンボ倍率適用; GameBalance.cs: COMBO_WINDOW_TIME等追加; 新規ComboCounterUI.cs）
+2026-02-22 後付け RemoveCharacter呼び出し追加（CharacterControl.cs: OnDestroy()追加）
+2026-02-26 #37 内容変更: ローカルセーブ/ロード→PlayFab認証システムに変更（オンラインゲーム基本構造の考慮）
+2026-02-26 #38 新規追加: PlayFabオンラインデータ永続化・オフライン同期システム（#37旧内容を引き継ぎPlayFab対応に刷新）
+2026-02-28 #27 一部完了: BaseMonsterAnimator.controllerにAttackIndex(Int)パラメーター追加。残作業(ステート追加)はアニメーションクリップ作成後
+2026-02-28 #28 完了: UnityMCPでComboCounter UI作成（UserUI/ComboCounter, RectTransform, ComboPanel, ComboText(TMP), _character=R.K.D.Character）
+2026-02-28 #29 完了: GameSceneManager.cs新規作成（シングルトン・DontDestroyOnLoad・フェード付き非同期ロード・DamageManager.ClearAll()呼び出し・シーン名定数）
+2026-03-02 #21 完了: パリィシステム実装（GuardState拡張・CharacterCombat._parryTimer/_isParried・PARRY_WINDOW/STAMINA_RECOVERY/COUNTER_WINDOW定数追加）
+2026-03-02 #22 完了: ローリング回避実装（RollingState新規・ダブルタップ入力・MaintainRollVelocity・無敵時間）
+2026-03-02 #32 完了: ステージ管理システム（StageData/EncounterData/StageManager/SpawnPoint/CheckpointTrigger/GoalTrigger 新規作成）
+2026-03-02 #12 完了: レベルアップ処理（PlayerWallet/LevelUpManager新規作成・CharacterControl.csに_currentLevel/_abilityPoints/ApplyLevelUp追加）
+2026-03-03 #13 完了: アビリティポイントシステム（AbilityNodeDef/AbilityTreeLoader/AbilityTreeManager新規作成・CSV3ファイル・CharacterControl統合）
+2026-03-03 #25 完了: チャージ攻撃システム（ChargeState/ChargeAttackState新規・_attackHeldTimer/GetChargeReady追加・DamageManagerにchargeMultiplier適用）
+2026-03-04 #42 完了: BaseMonsterAnimator.controllerにChargeStart/ChargeRelease(Trigger)・ChargeLevel/ChargeStage(Int)・Roll(Trigger)追加（UnityMCP使用、計13パラメータ）
+2026-03-04 #39 完了: StageManager/PlayerWalletゲームオブジェクト作成・コンポーネント追加、Playerレイヤー追加(slot8)・R.K.D.Characterレイヤー更新（UnityMCP）
+2026-03-04 #40 完了: StageData_001.asset作成(Assets/Resources/Stages/)、PlayStageにSpawnPoint/Checkpoint_0/Goal配置・CheckpointTrigger/GoalTrigger/BoxCollider(isTrigger)設定（UnityMCP）
+2026-03-04 #41 完了: PuniboCharacter→WaterSlime・R.K.D.Character→FrameDragon設定、category_nodes.csvをFrameDragon/WaterSlimeに更新（UnityMCP）
+2026-03-04 #34a 完了: OwnedCharacterData.cs（CharacterRarity/Size/Behavior enum, CharacterStatus struct, OwnedCharacterData class）・OwnedCharacterCollection.cs（DontDestroyOnLoadシングルトン, 上限50体, SetupDeployment/Partners管理）新規作成
+
+--------------------------------------------------------------------------------
+
+================================================================================
+関連ドキュメント
+================================================================================
+- game_requirements.md      : ゲーム要件定義
+- game_system_design.md     : システム設計（基本）
+- game_system_design_advanced.md : システム設計（拡張）
+- class_diagram.md          : クラス図
+- state_diagram.md          : 状態遷移図
+- code_review_and_improvements.md : コードレビュー
+
+================================================================================
