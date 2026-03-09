@@ -238,6 +238,50 @@ category_nodes.csv の対象ノードの effectValue を "charge_walk" に設定
   （GoalTrigger / CheckpointTrigger / SpawnPoint が LayerMask.NameToLayer("Player") を参照）
 
 --------------------------------------------------------------------------------
+■ アビリティツリー（#14）
+--------------------------------------------------------------------------------
+
+【#14 アビリティツリー】
+□ CSV データの確認・編集
+  - Assets/Resources/AbilityTrees/ 以下の3ファイルを Unity 外エディタで編集:
+    * common_nodes.csv   : 全キャラ共通ノード
+    * category_nodes.csv : カテゴリ（キャラ種族）固有ノード（UnlockSkill 主体）
+    * character_nodes.csv: 個体固有ノード（characterId が CharacterControl._characterId と一致）
+  - 列順（固定）: nodeId, name, apCost, effectType, effectValue, prerequisites, categoryId, characterId, tier
+    * effectType: MaxHealth / MaxStamina / AttackPower / DefensePower / MoveSpeed /
+                 BaseAttributePower / BaseResistancePower / UnlockSkill
+    * effectValue: ステータス系は数値、UnlockSkill はスキルGUID文字列
+    * prerequisites: パイプ区切り（例: node_hp1|node_atk1）、なければ空
+    * categoryId: カテゴリノードのみ設定（例: FrameDragon）、それ以外は空
+    * characterId: 個体ノードのみ設定（例: 1）、それ以外は 0
+  - CharacterControl Inspector の _characterCategory を categoryId と一致させること
+
+□ AbilityTreePanel のセットアップ（AbilityTab 配下の GameObject に AddComponent）
+  Inspector で以下を設定:
+  - Tier Roots（Transform 配列）: インデックス = Tier 値
+    * [0]: Tier0ルート（コアノード用、不要なら空でも可）
+    * [1]: Tier1ノードを並べる親 Transform（HorizontalLayoutGroup 推奨）
+    * [2]: Tier2ノードを並べる親 Transform
+    * [3]: Tier3ノードを並べる親 Transform
+    * [4]: Tier4（カテゴリ最終）用 Transform
+    * [5]: Tier5（個体最終）用 Transform
+  - Node Button Prefab: AbilityNodeButton コンポーネントを持つプレハブ
+  - AP Text          : AP残量表示 TextMeshProUGUI
+  - Reset Cost Text  : リセットコスト表示 TextMeshProUGUI
+  - Reset Button     : リセットボタン（interactable は自動管理）
+  - Message Text     : 習得結果メッセージ TextMeshProUGUI（初期は非表示）
+
+□ AbilityNodeButton プレハブを作成
+  Inspector で以下を設定:
+  - Name Text / Cost Text / Effect Text / Tier Text
+  - Unlocked Overlay: 習得済みマーク（緑色パネル等）
+  - Blocked Overlay : 解放不可オーバーレイ（半透明グレー等）
+  - Button         : クリックで TryUnlock() を呼ぶ（自動設定）
+
+□ AbilityTab Inspector 更新（既存の _treeStubPanel 参照を外す）
+  - Tree Panel: 上記 AbilityTreePanel への参照を設定
+
+--------------------------------------------------------------------------------
 ■ メニューUI（#35）
 --------------------------------------------------------------------------------
 
