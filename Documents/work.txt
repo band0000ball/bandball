@@ -1,6 +1,6 @@
 ================================================================================
 手動作業リスト（Unityエディタ / Inspector 設定）
-更新日: 2026-03-03
+更新日: 2026-03-08
 ================================================================================
 
 コード実装済みだが、Unityエディタ側での作業が残っているものをまとめます。
@@ -20,6 +20,133 @@
 【#12 レベルアップ処理】
 □ PlayerWallet コンポーネントを常駐 GameObject に AddComponent
   （DontDestroyOnLoad で自動維持）
+
+【#34a キャラクターデータモデル】
+□ OwnedCharacterCollection コンポーネントを常駐 GameObject に AddComponent
+  （DontDestroyOnLoad で自動維持）
+
+【#23 敵AI StateMachine】
+□ 各敵プレハブに EnemyAIData ScriptableObject を作成してアタッチ
+  メニュー: Assets > Create > PictureStory > Monster > EnemyAIData
+  設定項目:
+  - AI Type: Melee / Ranged / Magic / Defensive / Summoner / Boss
+  - Detection Range / Attack Range / Lost Range
+  - Flee Threshold / Reengage Threshold（0 = 逃走なし）
+  - Move Speed / Patrol Range
+  - Global Cooldown / Recovery Time
+  - Attack Patterns: patternName, minRange, maxRange, baseScore, cooldown, skillSlot
+  ※ ボス型の場合は isBoss=true にして Boss Phases を設定
+
+□ 各敵プレハブの Monsters コンポーネントの _aiData フィールドに上記 ScriptableObject を設定
+
+【#34f 錬金術システム】
+□ 錬金術は CollectionManager.Alchemize(baseChar, materials) を呼び出す
+  エディタ側のセットアップは CollectionManager と同一（#34e の設定で完了）
+□ OnEquipmentReturned イベントを購読してアイテムを実際のインベントリへ追加する
+  （#34c / #35 UI 実装時に対応）
+
+【#34e コレクション管理（おわかれ・スクラップ）】
+□ CollectionManager コンポーネントを常駐 GameObject に AddComponent
+  Inspector で以下を設定:
+  - Data Library   : プロジェクトの DataLibrary アセットを参照
+  - Master Data Table: 各キャラの CharacterMasterData アセットをリストへ追加
+
+□ キャラ種別ごとに CharacterMasterData ScriptableObject を作成
+  メニュー: Assets > Create > PictureStory > Character > CharacterMasterData
+  設定項目:
+  - Character Id        : CharacterControl._characterId と一致させること
+  - Character Name      : キャラクター名（UI 表示用）
+  - Farewell Drop Count : おわかれ時のドロップ個数
+  - Farewell Item Pool  : ドロップ候補アイテム GUID + 相対重み（weight）
+    ※ アイテム GUID は Databrain エディタ / Assets/Resources/Items/ 内の
+      ScriptableObject の GUID を参照すること
+
+【#34d キャラクター入手処理】
+□ ボス敵プレハブに CharacterDropHandler コンポーネントを AddComponent
+  Inspector で以下を設定:
+  - Character Id  : ドロップするキャラクターの ID（CharacterControl._characterId と一致させること）
+  - Level         : 仲間化時の初期レベル
+  - Rarity        : レアリティ（Common〜HyperRare）
+  - Size          : Small(0.5枠) / Normal(1.0枠)
+  - Behavior      : AI 行動傾向
+  - Base Drop Rate: 基本ドロップ率（0〜1）
+  - Max Drop Rate : ドロップ率上限（0〜1、デフォルト 0.95）
+  ※ CharacterControl が同一 GameObject に必須（RequireComponent）
+
+□ OnDuplicateCharacterObtained イベントを UI スクリプトで購読し、
+  選択ダイアログを表示する（#34c / #35 実装時に対応）
+
+【#34b プレイヤースポーン・操作切り替え】
+□ 各ステージシーンに PlayerSpawnPoint を配置
+  - 空の GameObject を作成し PlayerSpawnPoint コンポーネントを AddComponent
+  - プレイヤーのスタート地点となる位置に配置
+
+□ PlayerCharacterController コンポーネントをステージシーン内の GameObject に AddComponent
+  Inspector で以下を設定:
+  - Spawn Point : 上記 PlayerSpawnPoint を参照
+  - Operator Control : プレイヤーが操作するキャラクターの CharacterControl を参照
+  - Partner Controls : パートナーキャラクターの CharacterControl を優先度順にリストへ追加
+
+□ パートナーキャラクター（AI 操作）の GameObject には PlayerInput と Monsters の
+  両コンポーネントを用意する
+  - 初期状態: PlayerInput を disabled、Monsters を enabled に設定
+  - SwitchOperator() 呼び出し時にスクリプトが自動で切り替える
+  ※ 操作キャラクター（R.E.D. 等）は PlayerInput のみで可（Monsters 不要）
+
+【#34c 出撃画面 UI】
+□ 出撃画面シーン（またはパネル）に DeployScreen コンポーネントを AddComponent
+  Inspector で以下を設定:
+  - Character List Root  : キャラクターカードを並べる親 Transform（ScrollRect / Content）
+  - Character Card Prefab: DeployCharacterCard コンポーネントを持つプレハブ
+  - Operator Slot Text   : 操作キャラ表示 TextMeshProUGUI
+  - Partner Slots Text   : パートナースロット残量表示 TextMeshProUGUI
+  - Error Text           : エラーメッセージ TextMeshProUGUI（初期は非表示）
+  - Deploy Button        : 出撃確定ボタン → OnClick は自動登録済み（Confirm() を呼ぶ）
+
+□ DeployCharacterCard プレハブを作成（キャラ1体分のカードUI）
+  必要 UI 要素（各 TextMeshProUGUI / Button / GameObject を Inspector で設定）:
+  - Name Text / Level Text / Rarity Text / Slot Size Text / State Text
+  - Set Operator Button（操作キャラに設定ボタン）
+  - Toggle Partner Button（パートナー追加/解除ボタン）
+  - Operator Highlight（操作キャラ選択中に表示する GameObject）
+  - Partner Highlight（パートナー選択中に表示する GameObject）
+
+□ ステージ中パーティUI（PartyStatusUI）をステージシーンの UserUI Canvas に AddComponent
+  Inspector で以下を設定:
+  - Slots（PartyMemberSlot 配列, 最大4要素）: 各メンバースロット GameObject に AddComponent
+
+□ PartyMemberSlot を各スロット GameObject に AddComponent
+  Inspector で以下を設定:
+  - Name Text / HP Slider / HP Text
+  - Operator Mark（操作キャラマーク GameObject）
+  - Dead Overlay（死亡時オーバーレイ GameObject）
+  - Switch Button（クリックで操作切り替え）
+
+□ DeployScreen.OnDeploymentConfirmed イベントを購読して
+  GameSceneManager / StageManager からステージ遷移を開始する
+
+【#34g チュートリアル初期キャラ選択 UI】
+□ チュートリアルシーン（またはパネル）に TutorialCharacterSelectUI コンポーネントを AddComponent
+  Inspector で以下を設定:
+  - Candidates           : TutorialCandidateData のリスト（候補キャラ 5〜10 体を設定）
+    各エントリ: characterId / characterName / startLevel / rarity / size / behavior /
+               baseStatus（maxHp, maxStamina, attackPower, defensePower, moveSpeed）/
+               description / portrait（Sprite）
+  - Card Root            : 候補カードを並べる親 Transform（HorizontalLayoutGroup 推奨）
+  - Candidate Card Prefab: TutorialCandidateCard コンポーネントを持つプレハブ
+  - Selection Prompt Text: 選択状態テキスト TextMeshProUGUI
+  - Confirm Button       : 選択確定ボタン（interactable は自動管理）
+  - Present Count        : 提示体数（5〜10、デフォルト 5）
+
+□ TutorialCandidateCard プレハブを作成
+  必要 UI 要素（Inspector で設定）:
+  - Name Text / Rarity Text / Desc Text（TextArea）
+  - Portrait Image
+  - Selected Overlay（選択中ハイライト）
+  - Select Button（クリックで候補選択）
+
+□ TutorialCharacterSelectUI.OnCharacterSelected イベントを購読して
+  チュートリアル演出の続き（フェードアウト・ステージ遷移等）を処理する
 
 --------------------------------------------------------------------------------
 ■ Inspector 設定（各プレハブ・オブジェクト）
@@ -109,5 +236,64 @@ category_nodes.csv の対象ノードの effectValue を "charge_walk" に設定
 
 □ "Player" レイヤーが LayerMask に登録されていることを確認
   （GoalTrigger / CheckpointTrigger / SpawnPoint が LayerMask.NameToLayer("Player") を参照）
+
+--------------------------------------------------------------------------------
+■ メニューUI（#35）
+--------------------------------------------------------------------------------
+
+【#35 メニューUI】
+□ メニューキャンバス用 Canvas GameObject を作成（MainScene 常駐）
+  - MenuCanvas コンポーネントを AddComponent
+  - Render Mode: Screen Space - Overlay（または Camera）
+  - Sort Order: UserUI より高い値に設定（例: 10）
+
+□ MenuCanvas Inspector 設定:
+  - Menu Panel        : メニュー全体のルートパネル（RectTransform で画面全体を覆う）
+  - Status Tab Root   : ステータスタブのルート GameObject
+  - Inventory Tab Root: インベントリタブのルート GameObject
+  - Ability Tab Root  : アビリティタブのルート GameObject
+  - Map Tab Root      : マップタブのルート GameObject
+  - Settings Tab Root : 設定タブのルート GameObject
+  - Status Tab        : StatusTab コンポーネント参照
+  - Inventory Tab     : InventoryTab コンポーネント参照
+  - Ability Tab       : AbilityTab コンポーネント参照
+  - Map Tab           : MapTab コンポーネント参照
+  - Settings Tab      : SettingsTab コンポーネント参照
+
+□ StatusTab Inspector 設定（各 TextMeshProUGUI を配置して参照を設定）:
+  - Character Name Text / Level Text / Rarity Text / Size Text / Behavior Text
+  - HP Text / Stamina Text / Attack Text / Defense Text / Move Speed Text
+  - Attribute Power Text / Resistance Power Text
+  - Is Active Text / Alchemizable Text
+
+□ InventoryTab Inspector 設定:
+  - Grid Root      : アイテムセルを配置する親 Transform（GridLayoutGroup 推奨）
+  - Item Cell Prefab: アイテムセルプレハブ（TODO: アイテムシステム実装後に設定）
+  - Detail Panel   : アイテム詳細パネル GameObject
+  - Item Name Text / Item Type Text / Item Desc Text / Item Icon Image
+
+□ AbilityTab Inspector 設定:
+  - Skill Slot Texts : スキルスロット表示用 TextMeshProUGUI 配列（5要素）
+  - AP Text          : AP 数値表示 TextMeshProUGUI
+  - Tree Stub Panel  : アビリティツリースタブパネル（#14 実装後に置換）
+
+□ MapTab Inspector 設定:
+  - Stage Name Text    : ステージ名表示 TextMeshProUGUI
+  - Checkpoint Text    : チェックポイント番号表示 TextMeshProUGUI
+  - Map Stub Panel     : マップスタブパネル（マップ描画実装後に置換）
+
+□ SettingsTab Inspector 設定（Slider.minValue=0, maxValue=1 に設定）:
+  - Master Volume Slider / BGM Volume Slider / SE Volume Slider
+  - Master Volume Value Text / BGM Volume Value Text / SE Volume Value Text
+  - Fullscreen Toggle
+  - Brightness Slider / Brightness Value Text
+
+□ タブ切替ボタン（タブバー）を作成し各ボタンに OnClick を設定:
+  - ステータスボタン  → MenuCanvas.ShowStatusTab()
+  - インベントリボタン → MenuCanvas.ShowInventoryTab()
+  - アビリティボタン  → MenuCanvas.ShowAbilityTab()
+  - マップボタン      → MenuCanvas.ShowMapTab()
+  - 設定ボタン        → MenuCanvas.ShowSettingsTab()
+  - 閉じるボタン      → MenuCanvas.Close()
 
 ================================================================================

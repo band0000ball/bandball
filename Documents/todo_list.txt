@@ -129,7 +129,7 @@ PictureStory 開発タスクリスト
      - 修正 Assets/Scripts/Commons/GameBalance.cs（ABILITY_RESET_GOLD_RATE追加）
    - 完了日: 2026-03-03
 
-#14 [pending] アビリティツリーの実装
+#14 [done] アビリティツリーの実装
    - アビリティノード定義(AbilityTreeData: ScriptableObject)
    - 前提条件システム(prerequisiteNodeIds)
    - パッシブ/アクティブアビリティの区別
@@ -137,6 +137,14 @@ PictureStory 開発タスクリスト
    - 実装ファイル: 新規AbilityTreeData.cs, AbilityTreeManager.cs, UI関連
    - 難易度: 大 / 影響範囲: 大
    - depends on: #13
+   - 進捗 2026-03-09: コード実装完了
+     - AbilityNodeDef.cs / AbilityTreeLoader.cs / AbilityTreeManager.cs: #13 で実装済み
+     - AbilityTreeManager に AvailableNodes プロパティ追加（UI向け）
+     - UI/AbilityNodeButton.cs 新規: ノード1つのボタン（NodeId, Refresh, FormatEffect）
+     - UI/AbilityTreePanel.cs 新規: Tier別ノード一覧・TryUnlock・TryReset・AP/コスト表示
+     - UI/AbilityTab.cs 更新: _treeStubPanel → AbilityTreePanel に置換
+     - Resources/AbilityTrees/ CSV: common_nodes / category_nodes / character_nodes（#13 済み）
+     ※ パッシブ（ステータス系）/ アクティブ（UnlockSkill）は EffectType で区別済み
 
 #15 [pending] シナジーシステムの実装
    - 属性連携: 連続ヒット時に発動（例: 油アイテムスキル→火アイテムスキルで追加ダメージ）
@@ -279,7 +287,7 @@ PictureStory 開発タスクリスト
    - 残作業: Roll アニメーションクリップ + Animator トリガー追加（#27残作業と同時）
    - 完了日: 2026-03-01
 
-#23 [pending] 敵AI StateMachineの実装（Phase 3-3）
+#23 [done] 敵AI StateMachineの実装（Phase 3-3）
    - 現在の距離ベース条件分岐をStateMachineに置換
    - 状態: Idle, Patrol, Chase, Attack, Cooldown, Flee, Recovery, Dead（8状態）
    - AIタイプ6種: 近接型/遠隔型/魔法型/防御型/召喚型/ボス型（AIType enum）
@@ -452,7 +460,7 @@ PictureStory 開発タスクリスト
    - 難易度: 小 / 影響範囲: 小
    - depends on: #12（レベルアップ処理）
 
-#34b [pending] プレイヤースポーン・操作切り替えの実装
+#34b [done] プレイヤースポーン・操作切り替えの実装
    - PlayerSpawnPoint: ステージ開始時に操作キャラ＋パートナーをスポーンする地点コンポーネント
    - PlayerCharacterController: OwnedCharacterCollection を参照して CharacterControl を初期化
      * SwitchOperator(target): 元のキャラをAI操作に戻し、target をプレイヤー操作に
@@ -463,15 +471,22 @@ PictureStory 開発タスクリスト
    - 難易度: 中 / 影響範囲: 大
    - depends on: #34a
 
-#34c [pending] 出撃画面 UI の実装
+#34c [done] 出撃画面 UI の実装
    - 保有コレクション一覧から操作キャラ1体を選択
    - パートナースロット最大2.0枠（Small=0.5枠・Normal=1.0枠、最大4体の小型も可）
    - 各キャラクターへの装備割り当て
    - 実装ファイル: 新規 UI/DeployScreen.cs, UI/PartyStatusUI.cs
    - 難易度: 大 / 影響範囲: 中
    - depends on: #34a, #34b, #35（メニューUI）
+   - 進捗 2026-03-08: コード実装完了
+     - DeployScreen.cs: 操作キャラ選択・パートナー選択・スロット上限チェック・SetupDeployment()呼び出し
+     - DeployCharacterCard.cs: 各キャラカードUI（Set/Toggle ボタン）
+     - PartyStatusUI.cs: ステージ中常時表示・HP更新・SwitchOperator() 呼び出し
+     - PartyMemberSlot.cs: 各スロットUI（HP Slider・操作マーク・死亡オーバーレイ・ボタン）
+     - PlayerCharacterController.cs に ActivePartners プロパティ追加
+     ※ 装備割り当てはアイテムシステム実装後に対応
 
-#34d [pending] キャラクター入手処理の実装
+#34d [done] キャラクター入手処理の実装
    - CharacterDropHandler: ボス撃破時のオーバーキル補正ドロップ判定
      （HP0ちょうど→50%, HP×0.5ダメージ→80%, HP×2.0ダメージ→10%）
    - 同一キャラ入手時: 基礎ステータスアップ(+2〜5%) or 追加登録を選択
@@ -481,14 +496,14 @@ PictureStory 開発タスクリスト
    - 難易度: 中 / 影響範囲: 中
    - depends on: #34a
 
-#34e [pending] コレクション管理（おわかれ・スクラップ）の実装
+#34e [done] コレクション管理（おわかれ・スクラップ）の実装
    - おわかれ: キャラ種別固有のアイテムプール（CharacterMasterData.farewellItemPool）からランダムドロップ
    - スクラップ: 返還通貨 = レベルアップ総コスト × 0.5
    - 実装ファイル: 新規 CollectionManager.cs（おわかれ・スクラップのみ）
    - 難易度: 小 / 影響範囲: 小
    - depends on: #34a, #34d
 
-#34f [pending] 錬金術システムの実装
+#34f [done] 錬金術システムの実装
    - AlchemySystem:
      * 素材条件: 同一 characterId かつ 素材の rarity ≥ ベースの rarity
      * ベースの isAlchemizable == true であること
@@ -500,15 +515,19 @@ PictureStory 開発タスクリスト
    - 難易度: 中 / 影響範囲: 中
    - depends on: #34a, #34e
 
-#34g [pending] 初期キャラクター選択（チュートリアル）の実装
+#34g [done] 初期キャラクター選択（チュートリアル）の実装
    - 5〜10体の候補（属性ごとに1〜2体）をランダムで提示
    - 選択した1体が最初の操作キャラクターとして登録される
    - 選ばなかったキャラはゲーム内で通常入手可能
    - 実装ファイル: 新規 UI/TutorialCharacterSelectUI.cs
    - 難易度: 小 / 影響範囲: 小
    - depends on: #34a, #34c
+   - 進捗 2026-03-08: コード実装完了
+     - TutorialCharacterSelectUI.cs: 候補リストからランダム抽選・OwnedCharacterCollection登録・SetOperator()
+     - TutorialCandidateData: [Serializable] 候補データ（Inspector / SetCandidates() 両対応）
+     - TutorialCandidateCard.cs: 各候補カードUI（選択ハイライト・ポートレート・説明文）
 
-#35 [pending] メニューUIの実装
+#35 [done] メニューUIの実装
    - タブ構成: ステータス / インベントリ / アビリティ / マップ / 設定
    - ステータスタブ: キャラ情報、ステータス一覧、属性グラフ
    - インベントリタブ: アイテムグリッド、アイテム詳細・操作
@@ -518,6 +537,14 @@ PictureStory 開発タスクリスト
    - 実装ファイル: 新規UI/MenuCanvas.cs, UI/StatusTab.cs, UI/InventoryTab.cs 等
    - 難易度: 大 / 影響範囲: 中
    - depends on: #14
+   - 進捗 2026-03-08: コード実装完了
+     - MenuCanvas.cs: Esc トグル・タブ切替・Singleton
+     - StatusTab.cs: OwnedCharacterData ステータス全表示
+     - InventoryTab.cs: アイテム詳細パネル（グリッド生成はスタブ）
+     - AbilityTab.cs: AP表示・スキルスロット（#14 実装後に対応）
+     - MapTab.cs: StageManager からステージ名・チェックポイント表示（マップ描画はスタブ）
+     - SettingsTab.cs: 音量スライダー（PlayerPrefs 保存、#38 で LocalSettingsManager へ移行）
+     ※ アビリティツリー・インベントリグリッド・マップ描画は各依存タスク実装後に対応
 
 #36 [pending] 環境インタラクションシステムの実装
    - 基本5種: 水場×雷→電気拡散 / 油溜まり×火→引火 / 草×火→燃焼 /
@@ -643,6 +670,11 @@ PictureStory 開発タスクリスト
 2026-03-04 #40 完了: StageData_001.asset作成(Assets/Resources/Stages/)、PlayStageにSpawnPoint/Checkpoint_0/Goal配置・CheckpointTrigger/GoalTrigger/BoxCollider(isTrigger)設定（UnityMCP）
 2026-03-04 #41 完了: PuniboCharacter→WaterSlime・R.K.D.Character→FrameDragon設定、category_nodes.csvをFrameDragon/WaterSlimeに更新（UnityMCP）
 2026-03-04 #34a 完了: OwnedCharacterData.cs（CharacterRarity/Size/Behavior enum, CharacterStatus struct, OwnedCharacterData class）・OwnedCharacterCollection.cs（DontDestroyOnLoadシングルトン, 上限50体, SetupDeployment/Partners管理）新規作成
+2026-03-08 #34b 完了: PlayerSpawnPoint.cs新規・PlayerCharacterController.cs新規（死亡引き継ぎ・SwitchOperator・ゲームオーバーイベント）・CharacterControl.csにOnCharacterDied/NotifyDeath/SetInputBase追加・CharacterCombat.csにSetPlayerInput追加・DeadState.csにOnEnter追加
+2026-03-08 #23 完了: EnemyStateMachine基盤（IEnemyState/EnemyStateMachine/EnemyStateBase）・8状態（Idle/Patrol/Chase/Attack/Cooldown/Flee/Recovery/Dead）・EnemyAIData ScriptableObject・AttackPattern/BossPhase定義・ActionSelector（スコアリング）・Monsters.cs StateMachine統合
+2026-03-08 #34d 完了: CharacterDropHandler.cs新規作成（オーバーキル補正ドロップ率・重複時ステータスアップ or 追加登録イベント・満員時pending保持）・CharacterControl.csにGetOverkillRatio/GetMaxHealth追加
+2026-03-08 #34e 完了: CharacterMasterData.cs新規（farewell アイテムプール ScriptableObject）・CollectionManager.cs新規（Farewell/Scrap/FarewellPending/ScrapPending/RegisterPendingAfterRemoval）・LevelUpManager.csにGetTotalLevelUpCost追加
+2026-03-08 #34f 完了: AlchemySystem.cs新規（Validate/GetRequiredMaterialCount/GetResultMessage 静的クラス）・CollectionManager.csにAlchemize/ReturnMaterialEquipment追加・OnAlchemyCompleted/OnEquipmentReturnedイベント追加
 
 --------------------------------------------------------------------------------
 
