@@ -596,6 +596,281 @@ PictureStory 開発タスクリスト
    - depends on: #37, #32
 
 ================================================================================
+【Phase 7: ゲームフロー完成】 追加日: 2026-03-10
+================================================================================
+
+■ 背景・目的
+  各システムは個別に完成しているが、「起動 → プレイ → 帰還」の一本のフローとして
+  つながっていない。本フェーズでは欠落しているシーン・UI・遷移を実装し、
+  完結したゲームループを成立させる。
+
+--------------------------------------------------------------------------------
+
+#43a [pending] タイトル画面 UI 検討
+   - 必要な UI 要素の洗い出し
+     - タイトルロゴ / 背景 / BGM
+     - 「はじめる」「続きから」「設定」「クレジット」ボタン
+     - 初回起動フラグによる分岐（チュートリアル or ロード）
+     - オフライン時バナー表示
+   - 遷移先シーンの整理
+     - 初回: タイトル → 認証（#48）→ チュートリアル（#34g）→ 拠点
+     - 2回目以降: タイトル → 認証（or オフライン続行）→ 拠点
+   - 難易度: 低 / 影響範囲: 小
+   - depends on: #37（PlayFab認証）、#38（データ永続化）
+
+#43b [pending] タイトル画面 UI 設計
+   - シーン名: TitleScene
+   - Canvas 構成・ボタン配置レイアウト決定
+   - フェードイン/アウト演出の仕様（GameSceneManager.FadeIn/Out 活用）
+   - 初回起動判定フラグの保存先（PlayerPrefs or ES3）
+   - 難易度: 低 / 影響範囲: 小
+   - depends on: #43a
+
+#43c [pending] タイトル画面 UI 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/UI/TitleCanvas.cs
+       （IsFirstLaunch フラグ・各ボタンコールバック・GameSceneManager 遷移呼び出し）
+   - 難易度: 低 / 影響範囲: 小
+   - depends on: #43b
+
+--------------------------------------------------------------------------------
+
+#44a [pending] リザルト画面 UI 検討
+   - 必要な UI 要素の洗い出し
+     - ステージクリア / ゲームオーバー の2モード
+     - 獲得通貨・ドロップアイテム一覧
+     - キャラドロップ通知（#34d との連携）
+     - 死亡ペナルティ結果サマリ（#31 との連携）
+     - クエスト進捗更新表示（#33 との連携）
+     - 「拠点へ帰還」「リトライ」ボタン
+   - StageManager.OnStageClear / OnGameOver イベントとの接続方式
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #32（StageManager）、#34d（キャラドロップ）、#31（ペナルティ）
+
+#44b [pending] リザルト画面 UI 設計
+   - オーバーレイ方式 vs 専用シーン遷移の選択
+   - クリア / ゲームオーバーで表示切り替えの仕様
+   - アニメーション演出（スコア計算、アイテム展開）の仕様
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #44a
+
+#44c [pending] リザルト画面 UI 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/UI/StageResultUI.cs
+       （OnStageClear/OnGameOver 購読・報酬表示・帰還/リトライ遷移）
+     - StageManager.cs に OnGameOver イベント追加（未実装の場合）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #44b
+
+--------------------------------------------------------------------------------
+
+#45a [pending] 拠点 Hub UI 検討
+   - 必要な画面・ボタンの洗い出し
+     - ナビゲーションボタン: ステージ選択 / コレクション / ショップ /
+                             クエスト / メニュー（#35）
+     - 常時表示情報: 所持金 / プレイヤー名 / 緊急通知（ペナルティ期限等）
+     - ペンディングキャラ通知（#34d pendingCharacter が存在する場合の強制削除UI）
+     - コレクション上限警告（50体満員）
+   - 各サブ画面へのシーン or パネル遷移方式の選択
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #35（メニューUI）、#34c（出撃UI）、#33（クエスト）
+
+#45b [pending] 拠点 Hub UI 設計
+   - シーン構成: HomeScene を新規作成 or 既存シーンにパネル追加
+   - ナビゲーションバー配置・各ボタン遷移先の確定
+   - GameSceneManager.SceneNames への HomeScene 追加
+   - 常時表示ウィジェット（Gold表示・通知バッジ）の仕様
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #45a
+
+#45c [pending] 拠点 Hub UI 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/UI/HomeCanvas.cs
+       （ナビゲーションボタン群・PlayerWallet 残高表示・通知バッジ管理）
+     - 修正 Assets/Scripts/Manager/GameSceneManager.cs
+       （SceneNames.Home 定数追加・HomeScene への遷移メソッド追加）
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #45b
+
+--------------------------------------------------------------------------------
+
+#46a [pending] ショップシステム 検討
+   - 必要な機能の洗い出し
+     - 消耗品購入（アイテム・強化素材）
+     - 装備購入
+     - 購入確認ダイアログ
+     - 在庫管理（無限 or 個数制限）
+     - ShopData（商品リスト ScriptableObject）構造の定義
+   - PlayerWallet との連携方式（TrySpend 活用）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #12（PlayerWallet）、#35（メニューUI）
+
+#46b [pending] ショップシステム 設計
+   - ShopData ScriptableObject のフィールド定義
+     （itemRef, price, stock, refreshCycle）
+   - ショップ画面の UI レイアウト（グリッド or リスト）
+   - 購入確認ダイアログ仕様
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #46a
+
+#46c [pending] ショップシステム 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Stage/ShopData.cs（ScriptableObject）
+     - 新規 Assets/Scripts/Manager/ShopManager.cs（購入ロジック・在庫管理）
+     - 新規 Assets/Scripts/UI/ShopCanvas.cs（商品グリッド・購入ダイアログ）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #46b
+
+--------------------------------------------------------------------------------
+
+#47a [pending] ガチャシステム 検討
+   - 必要な機能の洗い出し
+     - 単体 / 10連の2モード
+     - 確率テーブル（レアリティ別）の仕様
+     - 天井システム（N連以内にレア確定）の仕様
+     - 獲得キャラが OwnedCharacterCollection に加わる流れ
+     - ガチャ演出（カード展開アニメーション）の要否
+   - ガチャ通貨（有料 or 無料）の種別定義
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #34a（OwnedCharacterData）、#12（PlayerWallet）
+
+#47b [pending] ガチャシステム 設計
+   - GachaData ScriptableObject のフィールド定義
+     （poolEntries[], pityCount, guaranteedRarity）
+   - 重み付き抽選アルゴリズムの仕様
+   - 天井カウンタの保存先（ES3 or PlayFab）
+   - ガチャ演出 UI の仕様
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #47a
+
+#47c [pending] ガチャシステム 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Stage/GachaData.cs（ScriptableObject）
+     - 新規 Assets/Scripts/Manager/GachaManager.cs
+       （重み付き抽選・天井管理・OwnedCharacterCollection 追加）
+     - 新規 Assets/Scripts/UI/GachaCanvas.cs
+       （単体/10連ボタン・結果演出・獲得キャラ表示）
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #47b
+
+--------------------------------------------------------------------------------
+
+#48a [pending] 認証フロー UI 検討
+   - 必要な画面・状態の洗い出し
+     - 「ゲストとして続ける」「メール登録」「SNS ログイン」の3ルート
+     - ゲスト → フルアカウント移行ダイアログ
+     - ログイン失敗 / ネットワークエラー表示
+     - オフラインモード通知バナー
+   - #37 PlayFab 認証ロジックとの接続方式
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #37（PlayFab認証）
+
+#48b [pending] 認証フロー UI 設計
+   - シーン名: LoginScene（or TitleScene 内パネル）
+   - 状態遷移: LoginScene → HomeScene（成功）/ オフライン継続
+   - エラーメッセージ種別ごとのダイアログ仕様
+   - ゲスト移行誘導タイミングの設計（初回起動・データ引継ぎ警告時）
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #48a
+
+#48c [pending] 認証フロー UI 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/UI/LoginCanvas.cs
+       （AuthManager 購読・各ボタンコールバック・エラー表示・オフラインバナー）
+   - 難易度: 中 / 影響範囲: 大
+   - depends on: #48b, #37
+
+--------------------------------------------------------------------------------
+
+#49a [pending] インベントリグリッド・装備割り当て UI 検討
+   - 必要な UI 要素の洗い出し
+     - アイテムグリッド（ページング or 無限スクロール）
+     - アイテム詳細パネル（名前・説明・使用ボタン・装備ボタン）
+     - キャラクターへの装備割り当て画面
+       （スロット: 武器 / 防具 / アクセサリ 等）
+     - アイテム保護マーク表示（#31 ItemProtectionManager 連携）
+     - ソート / フィルタ機能（タイプ別・レアリティ別）
+   - 既存 InventoryTab（#35）スタブとの統合方針
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #35（InventoryTab スタブ）、#31（ItemProtectionManager）
+
+#49b [pending] インベントリグリッド・装備割り当て UI 設計
+   - ItemCell プレハブの UI 要素定義
+     （アイコン / 個数 / レアリティ枠 / 保護マーク）
+   - 装備割り当てパネルのスロット構成決定
+   - ページング or 仮想スクロール方式の選択
+   - InventoryTab へのグリッド組み込み方法
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #49a
+
+#49c [pending] インベントリグリッド・装備割り当て UI 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/UI/InventoryGrid.cs（セル生成・ページング）
+     - 新規 Assets/Scripts/UI/InventoryItemCell.cs（アイコン・個数・保護マーク）
+     - 新規 Assets/Scripts/UI/EquipmentAssignPanel.cs（スロット表示・装備変更）
+     - 修正 Assets/Scripts/UI/InventoryTab.cs（Grid / Detail Panel 統合）
+   - 難易度: 大 / 影響範囲: 大
+   - depends on: #49b
+
+--------------------------------------------------------------------------------
+
+#50a [pending] 図鑑システム 検討
+   - 必要なカテゴリの洗い出し
+     - 敵図鑑（撃破で解放・ドロップ率表示）
+     - アイテム図鑑（入手で解放・使用説明）
+     - キャラクター図鑑（入手で解放・ステータス参照）
+   - 解放条件と永続化（ES3 or PlayFab）の設計
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #38（データ永続化）、#34a（キャラデータ）
+
+#50b [pending] 図鑑システム 設計
+   - EncyclopediaManager の責務・データ構造決定
+     （解放済み ID セット + エントリ一覧 ScriptableObject）
+   - 図鑑 UI のタブ構成（敵 / アイテム / キャラ）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #50a
+
+#50c [pending] 図鑑システム 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Manager/EncyclopediaManager.cs
+       （解放フラグ管理・UnlockEntry / IsUnlocked）
+     - 新規 Assets/Scripts/UI/EncyclopediaCanvas.cs
+       （タブ切替・エントリリスト・詳細パネル）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #50b
+
+--------------------------------------------------------------------------------
+
+#51a [pending] 実績システム 検討
+   - 必要な実績カテゴリの洗い出し
+     - 戦闘（コンボ数・撃破数・ボス撃破）
+     - 探索（ステージクリア・全チェックポイント踏破）
+     - コレクション（キャラ数・錬金回数）
+     - 育成（レベル上限・全ノード解放）
+   - トリガー発火方式（イベント購読 vs ポーリング）の選択
+   - 報酬の有無・内容
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #33（クエスト）、#38（データ永続化）
+
+#51b [pending] 実績システム 設計
+   - AchievementData ScriptableObject のフィールド定義
+     （id, title, description, condition, rewardType, rewardValue）
+   - AchievementManager の進捗更新・完了判定ロジック設計
+   - UI 通知バナー（達成時ポップアップ）の仕様
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #51a
+
+#51c [pending] 実績システム 実装
+   - 実装ファイル:
+     - 新規 Assets/Scripts/Stage/AchievementData.cs（ScriptableObject）
+     - 新規 Assets/Scripts/Manager/AchievementManager.cs
+       （進捗カウント・完了判定・報酬付与・OnAchievementUnlocked イベント）
+     - 新規 Assets/Scripts/UI/AchievementBanner.cs
+       （達成時ポップアップ・リスト画面）
+   - 難易度: 中 / 影響範囲: 中
+   - depends on: #51b
+
+================================================================================
 【エディタセットアップ作業（UnityMCP）】
 ================================================================================
 

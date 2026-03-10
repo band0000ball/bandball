@@ -36,7 +36,7 @@ namespace Stage
         [SerializeField] private GameObject _droppedPickupPrefab;
 
         private readonly List<OwnedCharacterData> _trackedCharacters = new();
-        private readonly Dictionary<OwnedCharacterData, System.Action> _deathListeners = new();
+        private readonly Dictionary<OwnedCharacterData, (CharacterControl cc, System.Action listener)> _deathListeners = new();
 
         // ── Unity ─────────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ namespace Stage
                 _trackedCharacters.Add(data);
 
                 void listener() => OnCharacterDied(cc, data);
-                _deathListeners[data] = listener;
+                _deathListeners[data] = (cc, listener);
                 cc.OnCharacterDied += listener;
             }
         }
@@ -218,10 +218,10 @@ namespace Stage
 
         private void UntrackAll()
         {
-            foreach (var (data, listener) in _deathListeners)
+            foreach (var (_, entry) in _deathListeners)
             {
-                // CharacterControl への参照を失っているケースを想定し例外を握り潰す
-                // (OnCharacterDied はマルチキャストデリゲート、二重解除は無害)
+                if (entry.cc != null)
+                    entry.cc.OnCharacterDied -= entry.listener;
             }
             _deathListeners.Clear();
             _trackedCharacters.Clear();

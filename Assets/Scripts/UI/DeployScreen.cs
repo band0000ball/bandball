@@ -123,6 +123,8 @@ namespace UI
 
         private void BuildCharacterList()
         {
+            if (_characterListRoot == null) return;
+
             // 既存カードを全削除
             foreach (Transform child in _characterListRoot)
                 Destroy(child.gameObject);
