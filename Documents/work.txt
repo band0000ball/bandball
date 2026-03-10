@@ -340,4 +340,52 @@ category_nodes.csv の対象ノードの effectValue を "charge_walk" に設定
   - 設定ボタン        → MenuCanvas.ShowSettingsTab()
   - 閉じるボタン      → MenuCanvas.Close()
 
+--------------------------------------------------------------------------------
+■ 難易度システム（#16）
+--------------------------------------------------------------------------------
+
+【#16 難易度システム】
+□ DifficultyManager コンポーネントを常駐 GameObject に AddComponent
+  （DontDestroyOnLoad で自動維持）
+
+□ DifficultySelectUI を出撃画面（DeployScreen）またはステージ選択画面の Canvas に配置
+  Inspector で以下を設定:
+  - Normal Button / Hard Button / Ultra Button: 各難易度ボタン
+    ※ OnClick は SelectNormal() / SelectHard() / SelectUltra() に設定
+  - Normal Selected / Hard Selected / Ultra Selected: 選択中表示 GameObject
+  - Penalty Desc Text: ペナルティ説明 TextMeshProUGUI
+  - Reward Desc Text : 報酬倍率説明 TextMeshProUGUI
+
+--------------------------------------------------------------------------------
+■ 死亡ペナルティ・アイテム保護システム（#31）
+--------------------------------------------------------------------------------
+
+【#31 DeathPenaltyManager】
+□ DeathPenaltyManager コンポーネントをステージ常駐 GameObject に AddComponent
+  Inspector で以下を設定:
+  - Dropped Pickup Prefab: DroppedPickup コンポーネント・Collider2D (isTrigger=true) を持つプレハブ
+
+□ DroppedPickup プレハブを作成
+  必要コンポーネント:
+  - Collider2D（isTrigger = true）: Player タグのコライダーと衝突で回収
+  - SpriteRenderer 等で視覚表示
+  ※ 回収時 DeathPenaltyManager.OnPickupCollected()・タイムアウト時 OnPickupExpired() が自動呼ばれる
+
+【#31 ItemDropMarker（UIマーカー）】
+□ ItemDropMarker コンポーネントをステージシーンの Canvas 子オブジェクトに AddComponent
+  Inspector で以下を設定:
+  - Marker Prefab  : RectTransform + Image + TextMeshProUGUI（タイマー表示）を持つプレハブ
+  - Canvas Rect    : 親キャンバスの RectTransform
+  - Camera         : メインカメラ（省略時 Camera.main を使用）
+
+□ Marker Prefab を作成（UI マーカー1つ分）
+  必要 UI 要素:
+  - Image: ドロップ種別アイコン
+  - TextMeshProUGUI: 残り時間（MM:SS 形式、30秒以下で赤色に変化）
+
+【#31 ItemProtectionManager】
+□ ItemProtectionManager コンポーネントを出撃画面 / ステージシーンの常駐 GameObject に AddComponent
+□ ステージ開始時に ClearProtection() を呼ぶよう接続する
+  ※ StageManager.OnStageStarted イベント購読か、DeathPenaltyManager 経由で呼ぶこと
+
 ================================================================================

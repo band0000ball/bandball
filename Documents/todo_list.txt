@@ -154,7 +154,7 @@ PictureStory 開発タスクリスト
    - 実装ファイル: 新規SynergyRule.cs, SynergyManager.cs, DamageManager.cs
    - 難易度: 大 / 影響範囲: 大
 
-#16 [pending] 難易度システムの実装
+#16 [done] 難易度システムの実装
    - 3段階難易度: ノーマル(Normal) / ハード(Hard) / ウルトラ(Ultra)
    - 敵レベル補正: +0 / +10 / +20
    - ドロップ報酬倍率（通貨/アイテム/レアアイテム）: 1.0x / 1.5x / 2.5x
@@ -403,7 +403,7 @@ PictureStory 開発タスクリスト
    - 実装ファイル: AttackSkillData.cs（フィールド追加）, DamageManager.cs（ロジック修正）
    - 難易度: 中 / 影響範囲: 中
 
-#31 [pending] 死亡ペナルティ・アイテム保護システムの実装
+#31 [done] 死亡ペナルティ・アイテム保護システムの実装
    - 死亡時のアイテム/装備ドロップ処理（ハード/ウルトラ難易度向け）
    - アイテム保護システム: 出撃前に通貨消費で保護（コモン10〜ハイパーレア以上要検討）
    - ドロップアイテム回収タイマー（通貨10分/装備10分/キャラクター30分）
@@ -675,6 +675,8 @@ PictureStory 開発タスクリスト
 2026-03-08 #34d 完了: CharacterDropHandler.cs新規作成（オーバーキル補正ドロップ率・重複時ステータスアップ or 追加登録イベント・満員時pending保持）・CharacterControl.csにGetOverkillRatio/GetMaxHealth追加
 2026-03-08 #34e 完了: CharacterMasterData.cs新規（farewell アイテムプール ScriptableObject）・CollectionManager.cs新規（Farewell/Scrap/FarewellPending/ScrapPending/RegisterPendingAfterRemoval）・LevelUpManager.csにGetTotalLevelUpCost追加
 2026-03-08 #34f 完了: AlchemySystem.cs新規（Validate/GetRequiredMaterialCount/GetResultMessage 静的クラス）・CollectionManager.csにAlchemize/ReturnMaterialEquipment追加・OnAlchemyCompleted/OnEquipmentReturnedイベント追加
+2026-03-10 #16 完了: DifficultySettings.cs（StageDifficulty enum・CreateNormal/Hard/Ultra ファクトリ）・DifficultyManager.cs（DontDestroyOnLoad・LockForStage/UnlockAfterStage）・DifficultySelectUI.cs（3ボタン・ペナルティ/報酬テキスト）・GameBalance.csに難易度定数追加
+2026-03-10 #31 完了: DroppedPickup.cs（PickupType・DateTime期限・OnTriggerEnter2D回収）・DeathPenaltyManager.cs（金/装備/キャラドロップ・TrackCharacters）・ItemDropMarker.cs（UI マーカー・残り時間表示）・ItemProtectionManager.cs（TryProtect・ClearProtection）
 
 --------------------------------------------------------------------------------
 
